@@ -17,23 +17,6 @@ GUIClass = {'Button':0,
 'VideoView':13,
 'TextView':14}
 
-categories = [
-    {"id": 0, "name": "Button"},
-    {"id": 1, "name": "CheckBox"},
-    {"id": 2, "name": "Chronometer"},
-    {"id": 3, "name": "EditText"},
-    {"id": 4, "name": "ImageButton"},
-    {"id": 5, "name": "ImageView"},
-    {"id": 6, "name": "ProgressBar"},
-    {"id": 7, "name": "RadioButton"},
-    {"id": 8, "name": "RatingBar"},
-    {"id": 9, "name": "SeekBar"},
-    {"id": 10, "name": "Spinner"},
-    {"id": 11, "name": "Switch"},
-    {"id": 12, "name": "ToggleButton"},
-    {"id": 13, "name": "VideoView"},
-    {"id": 14, "name": "TextView"}
-]
 
 def xmlTraverse(node, feature):
     nodeClass = node.attrib['class'].split('.')[2]
@@ -54,13 +37,16 @@ def writeYolov3Labels(feature, path):
     for feat in feature:
         bounds = list(map(int, feat['bounds']))
         featClass = feat['class']
+        #TODO: fix center formula
+        width = (bounds[2] - bounds[0] + 1)
+        height = (bounds[3] - bounds[1] + 1)
 
-        xcenter = ((bounds[2] - bounds[0] + 1) / 2) / 1200
-        ycenter = ((bounds[3] - bounds[1] + 1) / 2) / 1824
-        width = (bounds[2] - bounds[0] + 1) / 1200
-        height = (bounds[3] - bounds[1] + 1) / 1824
+        xcenter = (bounds[0] + width / 2) / 1200
+        ycenter = (bounds[1] + height / 2) / 1824
+        widthNorm = (bounds[2] - bounds[0] + 1) / 1200
+        heightNorm = (bounds[3] - bounds[1] + 1) / 1824
         labelFile = path.format(count)
         with open(labelFile, 'w') as f:
-            f.write('{} {} {} {} {}'.format(GUIClass[featClass], xcenter, ycenter, width, height))
+            f.write('{} {} {} {} {}'.format(GUIClass[featClass], xcenter, ycenter, widthNorm, heightNorm))
         f.close()
         count = count + 1
