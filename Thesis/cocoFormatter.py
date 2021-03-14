@@ -1,7 +1,11 @@
+import sys
+
 from Util import xmlTraverse, GUIClass
 import xml.etree.ElementTree as ET
 import os
 import json
+import cv2
+import numpy as np
 
 categories = [
     {"id": 0, "name": "Button"},
@@ -32,7 +36,7 @@ categories = [
 def build_annotation(annotation, feature, imageId, count):
     for feat in feature:
         bounds = list(map(int, feat['bounds']))
-        featClass = feat['Class']
+        featClass = feat['class']
         segmentation = [[bounds[0], bounds[1], bounds[2], bounds[1], bounds[0],bounds[3], bounds[2], bounds[3]]]
         width = (bounds[2] - bounds[0] + 1)
         height = (bounds[3] - bounds[1] + 1)
@@ -42,53 +46,98 @@ def build_annotation(annotation, feature, imageId, count):
             "segmentation": segmentation,
             "area": area,
             "iscrowd": 0,
-            "image_id": id,
+            "image_id": imageId,
             "bbox": bbox,
             "category_id": GUIClass[featClass],
             "id": count
         })
         count = count + 1
 
+def googleDriveCenterNetFormat(dir, fileName, images, imageCount):
+    appName = dir.split("\\")[-1]
+    imagePath = "/content/drive/MyDrive/Thesis/ReDraw-Final-Google-Play-Dataset/" + appName
+    xmlFile = fileName.split(("\\"))[-1]
+    imageFile = xmlFile.replace("hierarchy", "screenshot")
+    imageFile = imageFile.replace("xml", "png")
+    images.append({
+        "id": imageCount,
+        "width": 1200,
+        "height": 1920,
+        "file_name": imagePath + "/" + imageFile
+    })
 
-baseDir = "D:\\Vinh\\School\\Thesis\\Data\\ReDraw-Final-Google-Play-Dataset\\ReDraw-Final-Google-Play-Dataset"
-subDir = [x[0] for x in os.walk(baseDir)]
-annotations = []
-images = []
-annoCount = 0
-imageCount = 0
-for dir in subDir:
-    path = os.path.join(baseDir, dir)
-    for file in os.listdir(path):
-        if file.endswith(".xml"):
-            fileName = os.path.join(path, file)
-            tree = ET.parse(fileName)
-            root = tree.getroot()
-            feature = []
-            xmlTraverse(root, feature)
-            build_annotation(annotations, feature, imageCount, annoCount)
-            images.append({
-                "id": imageCount,
-                "width": 1200,
-                "height": 1824,
-                "file_name": fileName.replace("xml","jpg")
-            })
-            imageCount = imageCount + 1
+def localCenterNetFormat(fileName, images, imageCount):
+    imageName = fileName.replace("xml", "png")
+    imageName = imageName.replace("hierarchy", "screenshot")
+    images.append({
+        "id": imageCount,
+        "width": 1200,
+        "height": 1920,
+        "file_name": imageName
+    })
+
+def localFasterRCNNFormat(fileName, images, imageCount):
+    originalImageName = fileName.replace("xml", "png")
+    originalImageName = originalImageName.replace("hierarchy", "screenshot")
+    originalImage = cv2.imread(originalImageName)
+    copiedImage = np.copy()
+
+def formatter(isGoogleDrive, netType):
+    baseDir = "D:\\Vinh\\School\\Thesis\\Data\\ReDraw-Final-Google-Play-Dataset\\ReDraw-Final-Google-Play-Dataset"
+    subDir = [x[0] for x in os.walk(baseDir)][1:]
+    annotations = []
+    images = []
+    annoCount = 0
+    imageCount = 0
+    print("Start extracting...")
+    n = len(subDir)
+    dirCount = 0
+    for dir in subDir[0:1]:
+        for file in os.listdir(dir):
+            if file.endswith(".xml") and not file.startswith("."):
+                fileName = os.path.join(dir, file)
+                tree = ET.parse(fileName)
+                root = tree.getroot()
+                feature = []
+                for child in root:
+                    try:
+                        xmlTraverse(child, feature)
+                    except Exception:
+                        print(Exception.with_traceback())
+                        print(fileName)
+                        SystemExit
+                build_annotation(annotations, feature, imageCount, annoCount)
+                if isGoogleDrive:
+                    googleDriveCenterNetFormat(dir, fileName, images, imageCount)
+                    break
+                else:
+                    if netType == "CenterNet":
+                        localCenterNetFormat(fileName, images, imageCount)
+                    else:
+                        pass
+                imageCount = imageCount + 1
+        dirCount = dirCount + 1
+        sys.stdout.write('\r')
+        sys.stdout.write("{}".format(dirCount / n))
+        sys.stdout.flush()
+
+
+    ricoAnnotation = {
+        "info": "",
+        "licenses": "",
+        "categories": categories,
+        "images": images,
+        "annotations": annotations
+    }
+
+    dumpPath = "D:\\Vinh\\Share\\shared-repo-for-multi-machines\\Thesis\\annotations\\instances_test.json"
+    with open(dumpPath, 'w') as fp:
+        json.dump(ricoAnnotation, fp)
 
 
 
-ricoAnnotation = {
-    "info": "",
-    "licenses": "",
-    "categories": categories,
-    "images": images,
-    "annotations": annotations
-}
-
-dumpPath = ""
-with open(dumpPath, 'w') as fp:
-    json.dump(ricoAnnotation, fp)
-
-
+if __name__ == "__main__":
+    formatter(True, "CenterNet")
 
 
 
