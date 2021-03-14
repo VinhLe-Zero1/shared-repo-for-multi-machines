@@ -1,0 +1,1 @@
+baseDir = "D:\\Vinh\\School\\Thesis\\Data\\ReDraw-Final-Google-Play-Dataset\\ReDraw-Final-Google-Play-Dataset"

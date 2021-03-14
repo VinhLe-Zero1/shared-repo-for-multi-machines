@@ -6,6 +6,7 @@ import os
 import json
 import cv2
 import numpy as np
+from Config import *
 
 categories = [
     {"id": 0, "name": "Button"},
@@ -83,7 +84,6 @@ def localFasterRCNNFormat(fileName, images, imageCount):
     copiedImage = np.copy()
 
 def formatter(isGoogleDrive, netType):
-    baseDir = "D:\\Vinh\\School\\Thesis\\Data\\ReDraw-Final-Google-Play-Dataset\\ReDraw-Final-Google-Play-Dataset"
     subDir = [x[0] for x in os.walk(baseDir)][1:]
     annotations = []
     images = []
